@@ -1,0 +1,163 @@
+# Requires Docker Compose v2
+name: dlp-self-deposit
+services:
+  app: &app
+    build: .
+    entrypoint: ./scripts/entrypoint.sh
+    command: sh -c 'bundle exec puma -v -b tcp://0.0.0.0:3000'
+    stdin_open: true
+    tty: true
+    user: root
+    env_file:
+      - .env
+    depends_on:
+      - chrome
+      - db_migrate
+      - memcached
+      - postgres
+      - redis
+      - solr
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/app
+      - bundle:/app/bundle
+    networks:
+      - dlp
+
+  sidekiq:
+    build: .
+    entrypoint: ./scripts/entrypoint.sh
+    command: sh -c 'bundle exec sidekiq'
+    user: root
+    env_file:
+      - .env
+    depends_on:
+      - db_migrate
+      - memcached
+      - postgres
+      - redis
+      - solr
+    volumes:
+      - .:/app
+      - bundle:/app/bundle
+    networks:
+      - dlp
+
+  db_migrate:
+    build: .
+    entrypoint: ./scripts/entrypoint.sh
+    user: root
+    env_file:
+      - .env
+    command: ./scripts/db-migrate-seed.sh
+    depends_on:
+      - postgres
+      - solr
+    volumes:
+      - .:/app
+      - bundle:/app/bundle
+    networks:
+      - dlp
+
+  chrome:
+    image: seleniarm/standalone-chromium:114.0
+    environment:
+      - START_XVFB=false
+    logging:
+      driver: none
+    volumes:
+      - /dev/shm:/dev/shm
+    shm_size: 2G
+    ports:
+      - "4447:4444"
+      - "5962:5900"
+    networks:
+      - dlp
+
+  postgres:
+    image: postgres:15
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - db:/var/lib/postgresql/data
+    networks:
+      - dlp
+
+  fcrepo:
+    image: fcrepo/fcrepo:6.4.0
+    environment:
+      - >-
+        CATALINA_OPTS=-Dfcrepo.home=/fcrepo-home -Djava.awt.headless=true -Dfile.encoding=UTF-8
+        -server -Xms512m -Xmx1024m -XX:NewSize=256m -XX:MaxNewSize=256m -XX:PermSize=256m
+        -XX:MaxPermSize=256m -XX:+DisableExplicitGC -Dorg.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH=true
+      - JAVA_OPTS=-Dorg.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH=true
+    volumes:
+      - fcrepo:/fcrepo-home
+    ports:
+      - 8080:8080
+    networks:
+      - dlp
+
+  fits:
+    image: ghcr.io/samvera/fitsservlet:1.6.0
+    ports:
+      - 9082:8080
+    networks:
+      - dlp
+
+  memcached:
+    image: bitnami/memcached
+    ports:
+      - '11213:11211'
+    networks:
+      - dlp
+
+  redis:
+    image: bitnami/redis:6.2
+    env_file:
+      - .env
+    volumes:
+      - redis:/bitnami/redis/data
+    networks:
+      - dlp
+
+  solr:
+    image: solr:8.11
+    ports:
+      - 8983:8983
+    command:
+      - sh
+      - "-c"
+      - "precreate-core dlp-self-deposit /opt/solr/server/configsets/hyraxconf; solr-precreate dlp-self-deposit /opt/solr/server/configsets/hyraxconf"
+    volumes:
+      - ./solr/conf:/opt/solr/server/configsets/hyraxconf
+      - ./solr/data:/var/solr/data:cached
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 524288
+    networks:
+      - dlp
+
+volumes:
+  bundle:
+  db:
+  fcrepo:
+  hyrax-storage:
+  hyrax-derivatives:
+  hyrax-uploads:
+  rails-public:
+  rails-tmp:
+  redis:
+  sidekiq-public:
+  sidekiq-tmp:
+  solr_home:
+
+networks:
+  dlp:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-dlp
