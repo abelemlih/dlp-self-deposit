@@ -10,6 +10,7 @@ ARG RUBYGEMS_VERSION=""
 RUN apk --no-cache upgrade && \
   apk --no-cache add acl \
   build-base \
+  bash \
   curl \
   gcompat \
   imagemagick \
@@ -25,6 +26,9 @@ RUN apk --no-cache upgrade && \
   nodejs \
   yarn \
   zip \
+  ffmpeg \
+  mediainfo \
+  perl \
   $DATABASE_APK_PACKAGE \
   $EXTRA_APK_PACKAGES
 
@@ -51,10 +55,11 @@ CMD ["bundle", "exec", "puma", "-v", "-b", "tcp://0.0.0.0:3000"]
 FROM hyrax-base as hyrax
 
 ARG APP_PATH=.
-ARG BUNDLE_WITHOUT="development test"
+ARG BUNDLE_WITHOUT=
 
 ONBUILD COPY --chown=1001:101 $APP_PATH /app
 ONBUILD RUN bundle install --jobs "$(nproc)"
+ONBUILD RUN yarn
 ONBUILD RUN RAILS_ENV=production SECRET_KEY_BASE=`bin/rake secret` DB_ADAPTER=nulldb DATABASE_URL='postgresql://fake' bundle exec rake assets:precompile
 
 
@@ -83,47 +88,8 @@ CMD bundle exec sidekiq
 FROM hyrax-worker-base as hyrax-worker
 
 ARG APP_PATH=.
-ARG BUNDLE_WITHOUT="development test"
+ARG BUNDLE_WITHOUT=
 
 ONBUILD COPY --chown=1001:101 $APP_PATH /app
 ONBUILD RUN bundle install --jobs "$(nproc)"
 ONBUILD RUN RAILS_ENV=production SECRET_KEY_BASE=`bin/rake secret` DB_ADAPTER=nulldb DATABASE_URL='postgresql://fake' bundle exec rake assets:precompile
-
-
-FROM hyrax-base as hyrax-engine-dev
-
-USER root
-RUN apk --no-cache add bash \
-  ffmpeg \
-  mediainfo \
-  perl
-USER app
-
-ARG APP_PATH=.
-ARG BUNDLE_WITHOUT=
-
-ENV HYRAX_ENGINE_PATH /app/samvera/hyrax-engine
-
-COPY --chown=1001:101 $APP_PATH /app
-COPY --chown=1001:101 . /app
-
-RUN bundle -v && \
-  bundle install --jobs "$(nproc)" && \
-  cd $HYRAX_ENGINE_PATH && \
-  bundle install --jobs "$(nproc)" && \
-  yarn
-
-RUN RAILS_ENV=production SECRET_KEY_BASE='fakesecret1234' DB_ADAPTER=nulldb DATABASE_URL='postgresql://fake' bundle exec rake assets:precompile
-
-
-FROM hyrax-worker-base as hyrax-engine-dev-worker
-
-ARG APP_PATH=.
-ARG BUNDLE_WITHOUT=
-
-ENV HYRAX_ENGINE_PATH /app/samvera/hyrax-engine
-
-COPY --chown=1001:101 $APP_PATH /app
-COPY --chown=1001:101 . /app
-
-RUN bundle install --jobs "$(nproc)"

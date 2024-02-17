@@ -2,7 +2,10 @@
 name: dlp-self-deposit
 services:
   app: &app
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: hyrax
     entrypoint: ./scripts/entrypoint.sh
     command: sh -c 'bundle exec puma -v -b tcp://0.0.0.0:3000'
     stdin_open: true
@@ -26,7 +29,10 @@ services:
       - dlp
 
   sidekiq:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: hyrax-worker
     entrypoint: ./scripts/entrypoint.sh
     command: sh -c 'bundle exec sidekiq'
     user: root
@@ -45,7 +51,10 @@ services:
       - dlp
 
   db_migrate:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: hyrax
     entrypoint: ./scripts/entrypoint.sh
     user: root
     env_file:
