@@ -68,7 +68,7 @@ if wipe_data
 end
 
 if seed_app
-  puts 'Seeding Koppie ...'
+  puts 'Seeding Application ...'
 
   Hyrax::RequiredDataSeeder.new.generate_seed_data
   Hyrax::TestDataSeeders::UserSeeder.generate_seeds
