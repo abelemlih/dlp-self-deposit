@@ -1,5 +1,5 @@
 # Requires Docker Compose v2
-name: dlp-self-deposit
+name: dlp-selfdeposit
 services:
   app: &app
     build:
@@ -25,6 +25,11 @@ services:
     volumes:
       - .:/app
       - bundle:/app/bundle
+      - hyrax-storage:/app/storage
+      - hyrax-derivatives:/app/derivatives
+      - hyrax-uploads:/app/uploads
+      - rails-public:/app/public
+      - rails-tmp:/app/tmp
     networks:
       - dlp
 
@@ -47,6 +52,11 @@ services:
     volumes:
       - .:/app
       - bundle:/app/bundle
+      - hyrax-storage:/app/storage
+      - hyrax-derivatives:/app/derivatives
+      - hyrax-uploads:/app/uploads
+      - rails-public:/app/public
+      - rails-tmp:/app/tmp
     networks:
       - dlp
 
@@ -66,6 +76,8 @@ services:
     volumes:
       - .:/app
       - bundle:/app/bundle
+      - rails-public:/app/public
+      - rails-tmp:/app/tmp
     networks:
       - dlp
 
@@ -140,7 +152,7 @@ services:
     command:
       - sh
       - "-c"
-      - "precreate-core dlp-self-deposit /opt/solr/server/configsets/hyraxconf; solr-precreate dlp-self-deposit /opt/solr/server/configsets/hyraxconf"
+      - "precreate-core dlp-selfdeposit /opt/solr/server/configsets/hyraxconf; solr-precreate dlp-selfdeposit /opt/solr/server/configsets/hyraxconf"
     volumes:
       - solr:/var/solr/data:cached
       - ./solr/conf:/opt/solr/server/configsets/hyraxconf
@@ -157,6 +169,11 @@ volumes:
   fcrepo:
   redis:
   solr:
+  hyrax-storage:
+  hyrax-derivatives:
+  hyrax-uploads:
+  rails-public:
+  rails-tmp:
 
 networks:
   dlp:

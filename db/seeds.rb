@@ -1,13 +1,13 @@
 wipe_data = ActiveModel::Type::Boolean.new.cast(ENV.fetch('WIPE_DATA', false))
 seed_release_testing = ActiveModel::Type::Boolean.new.cast(ENV.fetch('SEED_RELEASE_TESTING', false))
-seed_koppie = ActiveModel::Type::Boolean.new.cast(ENV.fetch('SEED_KOPPIE', false))
+seed_app = ActiveModel::Type::Boolean.new.cast(ENV.fetch('SEED_APP', false))
 
 unless wipe_data || seed_release_testing
   puts 'NAME'
   puts '     rails db:seed (Hyrax)'
   puts
   puts 'SYNOPSIS'
-  puts '     bundle exec rails db:seed [WIPE_DATA=true|false] [SEED_RELEASE_TESTING=true|false] [SEED_KOPPIE=true|false]'
+  puts '     bundle exec rails db:seed [WIPE_DATA=true|false] [SEED_RELEASE_TESTING=true|false] [SEED_APP=true|false]'
   puts
   puts 'DESCRIPTION'
   puts '     Hyrax defined db:seed provides a means to clear repository metadata from the datastore (e.g. Fedora, Postgres) and from Solr.'
@@ -32,7 +32,7 @@ unless wipe_data || seed_release_testing
   puts '             test users, collection types, collections, and works with and without files.  See Hyrax::TestDataSeeder for more information'
   puts '             on what data will be created by this process.'
   puts
-  puts '     SEED_KOPPIE'
+  puts '     SEED_APP'
   puts '             When true, it will run a minimal set of seeds for koppie test app, including required collection types, default admin set,'
   puts '             and test users.'
   puts
@@ -67,7 +67,7 @@ if wipe_data
   Hyrax::RequiredDataSeeder.new.generate_seed_data
 end
 
-if seed_koppie
+if seed_app
   puts 'Seeding Koppie ...'
 
   Hyrax::RequiredDataSeeder.new.generate_seed_data
